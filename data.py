@@ -35,12 +35,7 @@ class Data:
         self.dict_file_validation = self.read_dataset_text(self.validation_file)
         self.dict_file_test = self.read_dataset_text(self.test_file)
 
-        (self.w2i, self.i2w) = self.create_w2i(self.dict_file_train)
-
-        UNK = self.w2i["<unk>"]
-        self.w2i = defaultdict(lambda: UNK, self.w2i)
-        self.i2w[self.w2i["<unk>"]] = "<unk>"
-        self.nwords = len(self.w2i)
+        (self.w2i, self.i2w, self.nwords) = self.create_w2i(self.dict_file_train)
 
         print("Vocabulary size is", len(self.w2i))
 
@@ -63,7 +58,11 @@ class Data:
     def create_w2i(self, dict_file, minimum_word_frequency=5):
         word_counter = Counter()
         w2i = defaultdict(lambda: len(w2i))
+        UNK = w2i["<unk>"]
+        PAD = w2i["<pad>"]
         i2w = dict()
+        i2w[UNK] = "<unk>"
+        i2w[PAD] = "<pad>"
         for key in dict_file.keys():
             word_list = self.extract_words(dict_file[key])
             for word in word_list:
@@ -72,7 +71,9 @@ class Data:
             if word not in w2i:
                 if (self.preprocess and count >= minimum_word_frequency) or not self.preprocess:
                     i2w[w2i[word]] = word
-        return (w2i, i2w)
+        w2i = defaultdict(lambda: UNK, w2i)
+        nwords = len(w2i)
+        return (w2i, i2w, nwords)
 
     def sentence_to_words(self, sentence):
         if self.preprocess:
