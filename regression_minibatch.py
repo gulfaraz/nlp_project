@@ -63,7 +63,6 @@ tokenizer = RegexpTokenizer(r'\w+')
 force_use_all_dialogs = False
 minimum_word_frequency = 5
 
-verbosity_interval = 1000
 
 #Load Text Features
 def read_dataset_text(filename):
@@ -171,7 +170,7 @@ dev = list(get_data(dict_file_validation))
 test = list(get_data(dict_file_test))
 
 
-def minibatch(data, batch_size = 100):
+def minibatch(data, batch_size = 50):
     for i in range(0, len(data), batch_size):
         yield data[i:i+batch_size]
 
@@ -188,12 +187,6 @@ def preprocess(batch):
 	#return in "stacked" format 
 	return text_features, img_ids, correct_indexes
 
-#Choose dataset size to train on
-number_of_iterations = 10
-learning_rate = 0.01
-embedding_size = 300
-image_feature_size = 2048
-output_vector_size = 10
 
 def evaluate(model, data):
 	"""Evaluate a model on a data set. From the range of images pick the one with the smallest vector distance"""
@@ -262,6 +255,27 @@ def evaluate_batch(model, data):
 
 	return TOP1, TOP5, TOP1/len(data), TOP5/len(data), len(data)
 
+def calculate_loss(model, data):
+
+	c_loss = 0.0
+	for batch in minibatch(data):
+
+		text_features, h5_ids, correct_index = preprocess(batch)
+		lookup_text_tensor = Variable(torch.LongTensor([text_features])).squeeze()
+
+		target = np.empty([len(batch), image_feature_size])
+
+		for obs, img_ids in enumerate (h5_ids):
+			target[obs] = img_features[img_ids[correct_index[obs]]]
+
+		target = Variable(torch.from_numpy(target).type(torch.FloatTensor))
+		prediction = model(lookup_text_tensor)
+		loss = criterion(prediction, target)
+		c_loss += loss.data[0] 
+
+	return c_loss / len(data)
+
+
 #Creates a class Regression 
 class Regression(nn.Module):
 	#output_dim should be one according to the current dimention
@@ -278,11 +292,19 @@ class Regression(nn.Module):
 		#Inputs should be in Tensor form
 		#image_input is list of tensors
 	def forward(self, text_input):
-		embeds = self.embeddings(text_input)
-		sum_embeds = torch.sum(embeds, 1) / self.vocab_size 
+		embeds = self.embeddings(text_input) / self.vocab_size
+		sum_embeds = torch.sum(embeds, 1)
 		output = self.linear1(sum_embeds)
 
 		return output
+
+
+number_of_iterations = 2
+learning_rate = 0.005
+embedding_size = 300
+image_feature_size = 2048
+output_vector_size = 10
+verbosity_interval = 1000
 
 model = Regression(nwords, image_feature_size, embedding_size, output_vector_size)
 print (model)
@@ -290,11 +312,13 @@ print (model)
 #TODO Check other learning rates
 optimizer = optim.Adam(model.parameters(), lr = learning_rate)
 criterion = nn.MSELoss()
-loss_data = []
+train_loss_list = []
+dev_loss = []
+test_loss = []
 
 #Initial scoring
-print("Initial Score on training", evaluate_batch(model, train))
-print("Initial Score on development", evaluate_batch(model, dev))
+#print("Initial Score on training", evaluate_batch(model, train))
+#print("Initial Score on development", evaluate_batch(model, dev))
 #print("Initial Score on training", evaluate(model, train))
 #print("Initial Score on development", evaluate(model, dev))
 
@@ -318,7 +342,6 @@ for ITER in range(number_of_iterations):
 		#Run model and calculate loss
 		prediction = model(lookup_text_tensor)
 		loss = criterion(prediction, target)
-		#TODO Check loss value
 		train_loss += loss.data[0]
 
 		optimizer.zero_grad()	
@@ -326,22 +349,29 @@ for ITER in range(number_of_iterations):
 		loss.backward()
 		optimizer.step()
 
-		if iteration % verbosity_interval == 0 and iteration != 0:
-			print("ITERATION %r: %r: train loss/sent=%.4f, time=%.2fs" % (ITER+1, iteration, train_loss/(iteration + 1), time.time() - start))
 	
-	print("ITERATION %r: train loss/sent=%.4f, time=%.2fs" % (ITER+1, train_loss/len(train), time.time() - start))
-	print("Score on training", evaluate_batch(model, train))
-	print("Score on development", evaluate_batch(model, dev))
-	loss_data.append(train_loss/len(train))
+	print("ITERATION %r: train loss/sent=%.4f, time=%.2fs" % (ITER+1, train_loss / len(train), time.time() - start))
+	#print("Score on training", evaluate_batch(model, train))
+	#print("Score on development", evaluate_batch(model, dev))
+
+	train_loss_list.append(train_loss/len(train))
+	dev_loss.append(calculate_loss(model, dev))
+	test_loss.append(calculate_loss(model, test))
 
 print("Saved model has test score", evaluate(model, test))
 
 #plot loss
-#plt.plot(loss_data)
-#plt.show()
+plt.plot(train_loss_list, label = "Train loss")
+plt.plot(dev_loss, label = "Validation loss")
+plt.plot(test_loss, label = "Test loss")
+plt.legend(loc='best')
+plt.xlabel("Epochs")
+plt.ylabel("Loss")
+plt.title ("Loss with lr = %.4f, embedding size = %r" % (learning_rate, embedding_size))
+plt.show()
 
 #Save model
-torch.save(model, model_path + "/regression_easy.pt")
+#torch.save(model, model_path + "/regression_easy.pt")
 #torch.save(model.state_dict(), model_path + "/regression_easy_dict.pty")
 
 
