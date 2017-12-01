@@ -9,6 +9,7 @@ from collections import defaultdict
 
 class Data:
     def __init__(self, difficulty="easy", data_path="data"):
+        print("Data Initializing...")
         self.path_to_h5_file = data_path + "/IR_image_features.h5"
         self.path_to_json_file = data_path + "/IR_img_features2id.json"
 
@@ -27,19 +28,21 @@ class Data:
             visual_feat_mapping = json.load(f)["IR_imgid2id"]
 
         self.visual_feat_mapping = visual_feat_mapping
+        print("Data Initialized Successfully")
 
     def __call__(self, preprocess=True, force_use_all_dialogs=False):
+        print("Processing Data...")
         self.preprocess = preprocess
         self.force_use_all_dialogs = force_use_all_dialogs
         self.dict_file_train = self.read_dataset_text(self.train_file)
         self.dict_file_validation = self.read_dataset_text(self.validation_file)
         self.dict_file_test = self.read_dataset_text(self.test_file)
 
-        (self.w2i, self.i2w, self.nwords) = self.create_w2i(self.dict_file_train)
+        (self.w2i, self.i2w, self.nwords, self.unk, self.pad) = self.create_w2i(self.dict_file_train)
 
-        print("Vocabulary size is", len(self.w2i))
+        print("Data is ready for use. Vocabulary size is", len(self.w2i))
 
-        return (self.w2i, self.i2w, self.nwords)
+        return (self.img_features, self.w2i, self.i2w, self.nwords, self.unk, self.pad)
 
     def get_train_data(self):
         return self.get_data(self.dict_file_train)
@@ -73,7 +76,7 @@ class Data:
                     i2w[w2i[word]] = word
         w2i = defaultdict(lambda: UNK, w2i)
         nwords = len(w2i)
-        return (w2i, i2w, nwords)
+        return (w2i, i2w, nwords, UNK, PAD)
 
     def sentence_to_words(self, sentence):
         if self.preprocess:
