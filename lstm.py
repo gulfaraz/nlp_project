@@ -256,8 +256,6 @@ class LSTM(nn.Module):
 		self.activation_function = nn.Softmax()
 
 
-		#Inputs should be in Tensor form
-		#image_input is list of tensors
 	def forward(self, text_input, image_input, last_words):
 		embeds = self.embeddings(text_input)
 		
@@ -276,11 +274,11 @@ class LSTM(nn.Module):
 		
 
 	def init_hidden(self):
-		return (Variable(torch.zeros(1, 1, self.hidden_size)), 
-				Variable(torch.zeros(1, 1, self.hidden_size)))
+		return (Variable(torch.zeros(self.batch_size, 1, self.hidden_size)), 
+				Variable(torch.zeros(self.batch_size, 1, self.hidden_size)))
 
 
-number_of_iterations = 1
+number_of_iterations = 2
 learning_rate = 0.01
 embedding_size = 300
 image_feature_size = 2048
@@ -335,8 +333,7 @@ for ITER in range(number_of_iterations):
 		loss = criterion(prediction, target)
 		train_loss += loss.data[0]
 
-		iteration += 100
-
+		iteration += batch_size
 		print (iteration)
 		
 		loss.backward()
