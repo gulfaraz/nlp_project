@@ -282,10 +282,10 @@ class GRU_Regression(nn.Module):
 		return output
 
 	def init_hidden(self):
-		return Variable(torch.zeros(1, 1, self.hidden_size))
+		return Variable(torch.zeros(self.batch_size, 1, self.hidden_size))
 
 
-number_of_iterations = 2
+number_of_iterations = 10
 learning_rate = 0.005
 embedding_size = 300
 image_feature_size = 2048
