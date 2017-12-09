@@ -270,7 +270,7 @@ class GRU(nn.Module):
 		return score
 		
 	def init_hidden(self):
-		return Variable(torch.zeros(1, 1, self.hidden_size))
+		return Variable(torch.zeros(self.batch_size, 1, self.hidden_size))
 				
 
 
