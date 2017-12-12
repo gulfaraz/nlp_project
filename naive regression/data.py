@@ -1,3 +1,6 @@
+import nltk
+from nltk.corpus import stopwords
+from nltk.tokenize import RegexpTokenizer
 import numpy as np
 import h5py
 import json
@@ -13,6 +16,11 @@ class Data:
         self.train_file = data_path + "/" + difficulty + "/IR_train_" + difficulty + ".json"
         self.validation_file = data_path + "/" + difficulty + "/IR_val_" + difficulty + ".json"
         self.test_file = data_path + "/" + difficulty + "/IR_test_" + difficulty + ".json"
+
+        self.negative_words = [ "no", "never", "don't", "not", "nope", "negative", "can't" ]
+        self.lemma = nltk.wordnet.WordNetLemmatizer()
+        self.stop_word_list = stopwords.words("english")
+        self.tokenizer = RegexpTokenizer(r"\w+")
 
         self.img_features = np.asarray(h5py.File(self.path_to_h5_file, "r")["img_features"])
 
@@ -48,7 +56,7 @@ class Data:
             dict_file = json.load(f)
             return dict_file
 
-    def create_w2i(self, dict_file):
+    def create_w2i(self, dict_file, minimum_word_frequency=5):
         word_counter = Counter()
         w2i = defaultdict(lambda: len(w2i))
         UNK = w2i["<unk>"]
@@ -62,13 +70,14 @@ class Data:
                 word_counter[word] += 1
         for (word, count) in word_counter.most_common():
             if word not in w2i:
-                i2w[w2i[word]] = word
+                if count >= minimum_word_frequency:
+                    i2w[w2i[word]] = word
         w2i = defaultdict(lambda: UNK, w2i)
         nwords = len(w2i)
         return (w2i, i2w, nwords, UNK, PAD)
 
     def sentence_to_words(self, sentence):
-        return sentence.split()
+        return self.tokenizer.tokenize(sentence)
 
     def extract_words(self, data_point):
         word_list = self.sentence_to_words(data_point["caption"])
@@ -76,6 +85,12 @@ class Data:
             for dialog_text in dialog:
                 word_list.extend(self.sentence_to_words(dialog_text))
         return word_list
+
+    def valid_dialog(self, dialog):
+        for negative_word in self.negative_words:
+            if negative_word in dialog:
+                return False
+        return True
 
     def get_data(self, dict_file):
         for key in dict_file.keys():

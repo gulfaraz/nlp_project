@@ -30,10 +30,8 @@ class Data:
         self.visual_feat_mapping = visual_feat_mapping
         print("Data Initialized Successfully")
 
-    def __call__(self, preprocess=True, force_use_all_dialogs=False):
+    def __call__(self):
         print("Processing Data...")
-        self.preprocess = preprocess
-        self.force_use_all_dialogs = force_use_all_dialogs
         self.dict_file_train = self.read_dataset_text(self.train_file)
         self.dict_file_validation = self.read_dataset_text(self.validation_file)
         self.dict_file_test = self.read_dataset_text(self.test_file)
@@ -72,22 +70,17 @@ class Data:
                 word_counter[word] += 1
         for (word, count) in word_counter.most_common():
             if word not in w2i:
-                if (self.preprocess and count >= minimum_word_frequency) or not self.preprocess:
+                if count >= minimum_word_frequency:
                     i2w[w2i[word]] = word
         w2i = defaultdict(lambda: UNK, w2i)
         nwords = len(w2i)
         return (w2i, i2w, nwords, UNK, PAD)
 
     def sentence_to_words(self, sentence):
-        if self.preprocess:
-            return self.tokenizer.tokenize(sentence)
-        else:
-            return sentence.split()
+        return self.tokenizer.tokenize(sentence)
 
     def extract_words(self, data_point):
         word_list = self.sentence_to_words(data_point["caption"])
-        if not self.preprocess:
-            return word_list
         for dialog in data_point["dialog"]:
             for dialog_text in dialog:
                 if self.valid_dialog(dialog_text):
@@ -98,8 +91,6 @@ class Data:
         return lemma_word_list
 
     def valid_dialog(self, dialog):
-        if self.force_use_all_dialogs:
-            return True
         for negative_word in self.negative_words:
             if negative_word in dialog:
                 return False
@@ -114,7 +105,7 @@ class Data:
 
             yield ([self.w2i[word] for word in word_list], img_vector, tag_index)
 
-#data = Data(difficulty="easy", data_path="data")
-#print(data(preprocess=True))
+#data = Data(difficulty="easy", data_path="../data")
+#print(data())
 #print(list(data.get_test_data())[:10])
 
