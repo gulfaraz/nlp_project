@@ -81,10 +81,6 @@ class Data:
 
     def extract_words(self, data_point):
         word_list = self.sentence_to_words(data_point["caption"])
-        for dialog in data_point["dialog"]:
-            for dialog_text in dialog:
-                if self.valid_dialog(dialog_text):
-                    word_list.extend(self.sentence_to_words(dialog_text))
         word_list = [word for word in word_list if word not in self.stop_word_list]
         lowercase_word_list = [word.lower() for word in word_list]
         lemma_word_list = [self.lemma.lemmatize(word) for word in lowercase_word_list]

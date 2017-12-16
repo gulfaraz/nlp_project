@@ -10,8 +10,10 @@ if difficulty != "hard":
     difficulty = "easy"
 
 train = Train(difficulty=difficulty)
-learning_rates = [ 0.001, 0.01 ]
-embedding_sizes = [ 300, 30 ]
+learning_rates = [ 0.001 ]
+embedding_sizes = [ 250 ]
+hidden_sizes = [ 600 ]
 for lr in learning_rates:
     for es in embedding_sizes:
-        train(number_of_iterations=1, learning_rate=lr, embedding_size=es)
+    	for hs in hidden_sizes:
+        	train(number_of_iterations=20, learning_rate=lr, embedding_size=es, hidden_size=hs)

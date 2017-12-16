@@ -6,6 +6,7 @@ from evaluate import Evaluate
 #Import other modules/libraries
 import time
 import torch
+import pickle
 import random
 import numpy as np
 import torch.nn as nn
@@ -33,7 +34,7 @@ class Train():
         self.image_feature_size = 2048
         self.output_vector_size = 10
 
-    def __call__(self, number_of_iterations=2, learning_rate=0.005, embedding_size=300, hidden_size=500, batch_size=100):
+    def __call__(self, number_of_iterations=2, learning_rate=0.005, embedding_size=300, hidden_size=600, batch_size=100):
         print("Starting 'Image Retrieval' in 'GRU Regression' mode with '" + self.difficulty + "' data")
 
         self.model_full_path = self.model_path + "/" + self.model_name + "_" + self.timestamp + "_" + str(learning_rate) + "_" + str(embedding_size) + ".pty"
@@ -48,7 +49,7 @@ class Train():
         self.model = GRU_Regression(self.nwords, self.embedding_size, self.image_feature_size, self.output_vector_size, self.hidden_size, self.batch_size)
         self.criterion = nn.MSELoss()
 
-        self.evaluate = Evaluate(self.model, self.img_features, self.minibatch, self.preprocess, self.image_feature_size)
+        self.evaluate = Evaluate(self.model, self.img_features, self.minibatch, self.preprocess, self.image_feature_size, self.i2w)
         print(self.model)
 
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
@@ -131,6 +132,7 @@ class Train():
         #Save model
         torch.save(self.model, self.model_full_path)
         print("Saved model has test score", self.evaluate(self.test, self.batch_size))
+        pickle.dump(self.evaluate.create_dic(self.test, self.batch_size), open("created_dics.pickle", "wb"))
 
     def plot(self):
         plt.plot(self.train_loss_values, label = "Train loss")

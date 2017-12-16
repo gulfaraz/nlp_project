@@ -136,6 +136,6 @@ class Train():
         file = open(self.output_file_name, "w")
         file.write(", ".join(map(str, self.train_loss_values)))
         file.write("\n")
-        file.write(str(self.evaluate(self.test)))
+        file.write(str(self.evaluate(self.dev)))
         file.write("\n")
         file.close()
